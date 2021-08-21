@@ -8,14 +8,18 @@ environment:
   sdk: ">=2.12.0 <3.0.0"
   flutter: ">=2.0.6"
 
-
-
 dependencies:
   flutter:
     sdk: flutter
 
   flutter_utils:
     path: ../flutter_utils
+
+  ads_framework:
+    path: ../ads_framework
+
+  flutter_analytics:
+    path: ../flutter_analytics
 
 dev_dependencies:
   flutter_test:
