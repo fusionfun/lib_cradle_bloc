@@ -5,9 +5,23 @@ part of "ads_bloc.dart";
 typedef showAdsLoadingDelegate = Future Function(BuildContext context, {Duration duration, Stream<bool> closeStream, String scene});
 
 mixin RewardedAware on AdsBloc {
-  RewardedAdsHandler? rewardedAdsHandler;
+  late RewardedAdsHandler rewardedAdsHandler;
 
   bool _latestUserRewarded = false;
+
+  RewardedAds? _rads;
+
+  RewardedAds? get rewardedAds {
+    if (_rads == null) {
+      final ads = adsDelegate.getRewardedAds();
+      final handler = rewardedAdsHandler;
+      if (ads != null) {
+        ads.addHandler(handler);
+      }
+      _rads = ads;
+    }
+    return _rads;
+  }
 
   void onRewardedAdDisplayed(AdsEventPayload payload) {
     print("onRewardedAdDisplayed");
@@ -32,7 +46,7 @@ mixin RewardedAware on AdsBloc {
   void onUserRewarded(AdsEventPayload payload) {}
 
   void bindRewardedAd() {
-    final handlerDelegate = RewardsAdsHandlerDelegate(
+    rewardedAdsHandler = RewardsAdsHandlerDelegate(
         onAdLoadedCallback: (payload) {
           onRewardedAdLoaded(payload);
         },
@@ -69,20 +83,27 @@ mixin RewardedAware on AdsBloc {
           // }
           // onUserRewarded(payload);
         });
-    rewardedAdsHandler = handlerDelegate;
-    adsService.addRewardedAdsHandler(handlerDelegate);
+    // adsService.addRewardedAdsHandler(handlerDelegate);
   }
 
   bool isLoadedRewardedAds() {
-    return adsService.isLoadedRewardedAds() || ((this is InterstitialAware) && (this as InterstitialAware).isLoadedInterstitialAds());
+    final ads = rewardedAds;
+    return (ads?.loaded == true) || ((this is InterstitialAware) && (this as InterstitialAware).isLoadedInterstitialAds());
   }
 
   void unbindRewardedAd() {
-    final handlerDelegate = rewardedAdsHandler;
-    if (handlerDelegate != null) {
-      adsService.removeRewardedAdsHandler(handlerDelegate);
+    _rads?.removeHandler(rewardedAdsHandler);
+    _rads = null;
+  }
+
+  RewardedAds _resetRewardedAds(RewardedAds ads, {bool load = true}) {
+    ads.dispose();
+    final result = adsDelegate.createRewardedAds()..addHandler(rewardedAdsHandler);
+    if (load) {
+      return result..load();
+    } else {
+      return result;
     }
-    rewardedAdsHandler = null;
   }
 
   Future<AdsResult> showRewardedAd({required BuildContext context, required String scene, showAdsLoadingDelegate? showAdsLoading}) async {
@@ -90,37 +111,42 @@ mixin RewardedAware on AdsBloc {
     bool showLoading = false;
     bool result = false;
     int retry = 0;
+    RewardedAds rads = rewardedAds ?? InvalidRewardedAds();
+
+    if (rads is InvalidRewardedAds) {
+      return AdsResult.build(adType, AdCause.sdkNotInitialized);
+    }
+
     do {
-      if (!adsService.isLoadedRewardedAds()) {
-        print("[$retry]adsService.isLoadedRewardedAds():${adsService.isLoadedRewardedAds()}");
+      if (rads.loaded != true) {
+        print("[$retry]adsService.isLoadedRewardedAds():${rads.loaded}");
         // 如果最后请求rewards广告的最近时间大于30秒
-        final elapsedTime = adsService.elapsedTimeInMillisSinceStartLoadRewardAds();
+        final elapsedTime = rads.elapsedTimeInMillisSinceStartLoadAds;
         if (elapsedTime > 30 * 1000) {
           // 如果请求广告时间已经超过60秒且当前不处于delay状态，这时将会重制广告对象
-          if (elapsedTime > 60 * 1000 && !adsService.isLoadingRewardAdsDelayed()) {
-            adsService.resetRewardedAds();
-            adsService.loadRewardAds();
+          if (elapsedTime > 60 * 1000 && !rads.isLoadingRewardAdsDelayed) {
+            rads = _resetRewardedAds(rads, load: true);
             Analytics.logEventEx("rads_rebuild");
             LogUtils.recordLog("reset rewarded ads");
           } else {
             // 否则强制reload一次
-            adsService.reloadRewardAds(force: true);
+            rads.reload(force: true);
             LogUtils.recordLog("force reload");
           }
         }
         showLoading = true;
-        await showAdsLoading?.call(context, duration: Duration(seconds: 5), closeStream: adsService.observeRewardAdsLoaded(), scene: scene);
+        await showAdsLoading?.call(context, duration: Duration(seconds: 5), closeStream: rads.observableLoaded, scene: scene);
       }
 
-// 这里如果show 失败了，底层会清掉loaded标记
-      result = await adsService.showRewarded(scene).catchError((error, stacktrace) {
+      // 这里如果show 失败了，底层会清掉loaded标记
+      result = await rads.show(scene: scene).catchError((error, stacktrace) {
         LogUtils.d("show rewarded video error! $error $stacktrace");
         return false;
       });
       retry++;
     } while (!result && !showLoading && retry < 1);
-// 如果返回结果为false，并且用户没有看到过loading页面
-// retry<1的判断是防止showRewarded没有正常清loaded造成的死循环
+    // 如果返回结果为false，并且用户没有看到过loading页面
+    // retry<1的判断是防止showRewarded没有正常清loaded造成的死循环
 
     if (result) {
       print("showRewardedAd ads success!");

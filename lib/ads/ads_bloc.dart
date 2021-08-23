@@ -19,7 +19,7 @@ part "rewarded_aware.dart";
 part "ads_service_delegate.dart";
 
 abstract class AdsBloc extends LifecycleBloc {
-  AdsServiceDelegate get adsService;
+  AdsDelegate get adsDelegate;
 
   Completer<AdsResult>? _pendingCompleter;
 

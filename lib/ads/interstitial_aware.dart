@@ -3,7 +3,19 @@
 part of "ads_bloc.dart";
 
 mixin InterstitialAware on AdsBloc {
-  AdsHandler? interstitialAdsHandler;
+  InterstitialAds? _iads;
+
+  InterstitialAds? get interstitialAds {
+    if (_iads == null) {
+      final ads = adsDelegate.getInterstitialAds();
+      final handler = interstitialAdsHandler;
+      ads?.addHandler(handler);
+      _iads = ads;
+    }
+    return _iads;
+  }
+
+  late AdsHandler interstitialAdsHandler;
 
   final StreamController<AdsEvent> adsEventStreamController = StreamController();
 
@@ -41,7 +53,7 @@ mixin InterstitialAware on AdsBloc {
   }
 
   void bindInterstitialAd() {
-    if (adsService.isNoAds) {
+    if (adsDelegate.isNoAds) {
       return;
     }
     final handlerDelegate = AdsHandlerDelegate(
@@ -74,35 +86,37 @@ mixin InterstitialAware on AdsBloc {
         },
         onAdDisplayedCallback: onInterstitialAdDisplayed);
     interstitialAdsHandler = handlerDelegate;
-    adsService.addInterstitialAdsHandler(handlerDelegate);
   }
 
   bool isLoadedInterstitialAds() {
-    return adsService.isLoadedInterstitialAds();
+    return _iads?.loaded == true;
   }
 
   void unbindInterstitialAd() {
     adsEventStreamController.close();
-    if (adsService.isNoAds) {
+    if (adsDelegate.isNoAds) {
       return;
     }
     final handlerDelegate = interstitialAdsHandler;
-    if (handlerDelegate != null) {
-      adsService.removeInterstitialAdsHandler(handlerDelegate);
-    }
-
-    interstitialAdsHandler = null;
+    _iads?.removeHandler(handlerDelegate);
+    _iads = null;
   }
 
   Future<AdsResult> showInterstitialAd({required String scene, bool ignoreNoAds = false}) async {
     final adType = AdType.interstitial;
     try {
-      if (!ignoreNoAds && adsService.isNoAds) {
+      if (!ignoreNoAds && adsDelegate.isNoAds) {
         return AdsResult.build(AdType.interstitial, AdCause.noAds);
       }
-      final adCause = await adsService.checkInterstitialScene(scene);
+
+      final iads = interstitialAds;
+      if (iads == null) {
+        return AdsResult.build(adType, AdCause.sdkNotInitialized);
+      }
+
+      final adCause = await iads.checkShow(scene: scene);
       if (adCause == AdCause.success) {
-        final result = await adsService.showInterstitial(scene);
+        final result = await iads.show(scene: scene);
         if (result) {
           LogUtils.recordLog("showInterstitial ads success!");
           _pendingCompleter?.complete(AdsResult.build(adType, AdCause.canceled));
@@ -123,8 +137,12 @@ mixin InterstitialAware on AdsBloc {
 
   Future<AdsResult> showFallbackInterstitialAd({required String scene}) async {
     final adType = AdType.interstitial;
+    final iads = interstitialAds;
+    if (iads == null) {
+      return AdsResult.build(adType, AdCause.sdkNotInitialized);
+    }
     try {
-      final result = await adsService.showInterstitial(scene);
+      final result = await iads.show(scene: scene);
       if (result) {
         print("showInterstitial ads success!");
         _pendingCompleter?.complete(AdsResult.build(adType, AdCause.canceled));

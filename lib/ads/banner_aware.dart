@@ -51,10 +51,10 @@ mixin BannerAware on AdsBloc {
   void onBannerAdLoadFailed(AdsEventPayload payload) {}
 
   void initBanner() async {
-    if (adsService.isNoAds) {
+    if (adsDelegate.isNoAds) {
       return;
     }
-    bannerAds = await adsService.createBanner(bannerScene,
+    bannerAds = await adsDelegate.createBanner(bannerScene,
         adsHandler: AdsHandlerDelegate(
           onAdLoadedCallback: onBannerAdLoaded,
           onAdLoadFailedCallback: onBannerAdLoadFailed,
@@ -65,7 +65,7 @@ mixin BannerAware on AdsBloc {
         ));
 
     addSubscription(Rx.combineLatest2<bool, bool, bool>(
-            adsService.observableInitialized, observableLoadBannerWhenReady, (a, b) => a && b)
+            adsDelegate.observableInitialized, observableLoadBannerWhenReady, (a, b) => a && b)
         .listen((ready) {
       print("mopub sdk initialize result: $ready");
       if (ready) {
@@ -99,7 +99,7 @@ mixin BannerAware on AdsBloc {
   }
 
   void disposeBanner() {
-    if (adsService.isNoAds) {
+    if (adsDelegate.isNoAds) {
       return;
     }
     bannerAds.dispose();
@@ -111,7 +111,7 @@ mixin BannerAware on AdsBloc {
   void onBannerPaused() {}
 
   void hideBanner() {
-    if (adsService.isNoAds) {
+    if (adsDelegate.isNoAds) {
       return;
     }
     if (bannerAdIsShow) {
@@ -121,7 +121,7 @@ mixin BannerAware on AdsBloc {
   }
 
   void loadBanner() {
-    if (adsService.isNoAds) {
+    if (adsDelegate.isNoAds) {
       return;
     }
     if (!bannerAdIsLoad) {
@@ -136,7 +136,7 @@ mixin BannerAware on AdsBloc {
   }
 
   void showBanner() async {
-    if (adsService.isNoAds) {
+    if (adsDelegate.isNoAds) {
       return;
     }
     if (!bannerAdIsShow) {
