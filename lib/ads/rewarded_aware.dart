@@ -2,7 +2,7 @@
 
 part of "ads_bloc.dart";
 
-typedef showAdsLoadingDelegate = Future Function(BuildContext context, {Duration duration, Stream<bool> closeStream, String scene});
+typedef ShowAdsLoadingDelegate = Future Function(BuildContext context, {Duration duration, required Stream<bool> closeStream, String scene});
 
 mixin RewardedAware on AdsBloc {
   late RewardedAdsHandler rewardedAdsHandler;
@@ -98,7 +98,8 @@ mixin RewardedAware on AdsBloc {
 
   RewardedAds _resetRewardedAds(RewardedAds ads, {bool load = true}) {
     ads.dispose();
-    final result = adsDelegate.createRewardedAds()..addHandler(rewardedAdsHandler);
+    final result = adsDelegate.createRewardedAds()
+      ..addHandler(rewardedAdsHandler);
     if (load) {
       return result..load();
     } else {
@@ -106,7 +107,7 @@ mixin RewardedAware on AdsBloc {
     }
   }
 
-  Future<AdsResult> showRewardedAd({required BuildContext context, required String scene, showAdsLoadingDelegate? showAdsLoading}) async {
+  Future<AdsResult> showRewardedAd({required BuildContext context, required String scene, ShowAdsLoadingDelegate? showAdsLoading}) async {
     final adType = AdType.rewarded;
     bool showLoading = false;
     bool result = false;
@@ -141,10 +142,10 @@ mixin RewardedAware on AdsBloc {
       // 这里如果show 失败了，底层会清掉loaded标记
       result = await rads.show(scene: scene).catchError((error, stacktrace) {
         LogUtils.d("show rewarded video error! $error $stacktrace");
+        // AnalyticsUtils.logException(ShowRewardedVideoAdsException(errorMsg), stacktrace: stacktrace);
         return false;
       });
-      retry++;
-    } while (!result && !showLoading && retry < 1);
+    } while (!result && !showLoading && retry++ < 1);
     // 如果返回结果为false，并且用户没有看到过loading页面
     // retry<1的判断是防止showRewarded没有正常清loaded造成的死循环
 
