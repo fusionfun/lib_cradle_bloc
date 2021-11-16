@@ -12,15 +12,6 @@ dependencies:
   flutter:
     sdk: flutter
 
-  # flutter_utils:
-  #   path: ../flutter_utils
-
-  # ads_framework:
-  #   path: ../ads_framework
-
-  # flutter_analytics:
-  #   path: ../flutter_analytics
-
   ads_framework:
     git:
       url: git@codeup.aliyun.com:60dc24c94690c27532d3cb5f/lib/ads_framework.git
@@ -35,6 +26,16 @@ dependencies:
     git:
       url: git@codeup.aliyun.com:60dc24c94690c27532d3cb5f/lib/flutter_analytics.git
       ref: master
+
+dependency_overrides:
+  flutter_utils:
+    path: ../flutter_utils
+
+  ads_framework:
+    path: ../ads_framework
+
+  flutter_analytics:
+    path: ../flutter_analytics
 
 dev_dependencies:
   flutter_test:
