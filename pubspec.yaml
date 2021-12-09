@@ -14,18 +14,18 @@ dependencies:
 
   ads_framework:
     git:
-      url: git@codeup.aliyun.com:60dc24c94690c27532d3cb5f/lib/ads_framework.git
-      ref: master
+      url: git@realcradle:realcradle/ads_framework.git
+      ref: main
 
   flutter_utils:
     git:
-      url: git@codeup.aliyun.com:60dc24c94690c27532d3cb5f/lib/flutter_utils.git
-      ref: master
+      url: git@realcradle:realcradle/flutter_utils.git
+      ref: main
 
   flutter_analytics:
     git:
-      url: git@codeup.aliyun.com:60dc24c94690c27532d3cb5f/lib/flutter_analytics.git
-      ref: master
+      url: git@realcradle:realcradle/flutter_analytics.git
+      ref: main
 
 dependency_overrides:
   flutter_utils:
